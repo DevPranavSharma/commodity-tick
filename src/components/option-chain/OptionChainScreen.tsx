@@ -1,10 +1,12 @@
 import BottomSheet from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState, useCallback } from 'react';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
-import { ATM_STRIKE, useOptionChainData } from '@/hooks/useOptionChainData';
+import { EXPIRY, INSTRUMENT, ATM_STRIKE, ORDER_SUCCESS_RATE } from '@/constants/optionChain';
+import { useOptionChainData } from '@/hooks/useOptionChainData';
 import { type OrderDraft, type StrikeRow } from '@/types/options';
 
 import { OrderBottomSheet } from '../order-form/OrderBottomSheet';
@@ -16,15 +18,11 @@ export function OptionChainScreen() {
   const [selectedOrder, setSelectedOrder] = useState<OrderDraft | null>(null);
   const sheetRef = useRef<BottomSheet>(null);
 
-  // Open the sheet whenever an order is selected
-  useEffect(() => {
-    if (selectedOrder) {
-      sheetRef.current?.expand();
-    }
-  }, [selectedOrder]);
-
   const handleCellPress = useCallback((draft: OrderDraft) => {
     setSelectedOrder(draft);
+    // Call expand() directly in the handler — avoids the one-frame delay
+    // that a useEffect would introduce between tap and sheet opening.
+    sheetRef.current?.expand();
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -35,7 +33,7 @@ export function OptionChainScreen() {
     // Simulate network latency
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const success = Math.random() < 0.8;
+    const success = Math.random() < ORDER_SUCCESS_RATE;
 
     if (success) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -74,8 +72,8 @@ export function OptionChainScreen() {
       {/* Screen title bar */}
       <View style={styles.titleBar}>
         <View>
-          <Text style={styles.title}>CRUDEOILM</Text>
-          <Text style={styles.subtitle}>Expiry: 19-Jun-2026</Text>
+          <Text style={styles.title}>{INSTRUMENT}</Text>
+          <Text style={styles.subtitle}>Expiry: {EXPIRY}</Text>
         </View>
         <View style={styles.liveDot}>
           <View style={styles.dot} />

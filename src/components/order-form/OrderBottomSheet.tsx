@@ -34,6 +34,10 @@ export const OrderBottomSheet = forwardRef<BottomSheet, OrderBottomSheetProps>(
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         onClose={onDismiss}
+        // Let the sheet handle keyboard avoidance natively — avoids the
+        // double-offset issue that KeyboardAvoidingView causes inside a sheet.
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         backgroundStyle={{ backgroundColor: '#161618' }}
         handleIndicatorStyle={{ backgroundColor: '#4B5563' }}
       >

@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -9,7 +7,7 @@ import {
   View,
 } from 'react-native';
 
-import { LOT_SIZE } from '@/hooks/useOptionChainData';
+import { LOT_SIZE } from '@/constants/optionChain';
 import { type OrderDraft, type OrderType } from '@/types/options';
 
 interface OrderFormProps {
@@ -30,19 +28,30 @@ export function OrderForm({ order, onSubmit }: OrderFormProps) {
   async function handlePress() {
     if (isDisabled) return;
     setIsSubmitting(true);
-    await onSubmit({
-      ...order,
-      quantity: parsedQty,
-      price: parseFloat(price) || order.price,
-      orderType,
-    });
+    try {
+      const parsedPrice = parseFloat(price);
+      await onSubmit({
+        ...order,
+        quantity: parsedQty,
+        // Use parsed price only when it's a valid positive number;
+        // parseFloat("0") is 0 which is falsy — explicit isNaN check avoids that trap.
+        price: !isNaN(parsedPrice) && parsedPrice > 0 ? parsedPrice : order.price,
+        orderType,
+      });
+    } finally {
+      // Reset so the button isn't stuck disabled if the caller throws
+      // without closing the sheet.
+      setIsSubmitting(false);
+    }
   }
 
+  // Gate pluralisation on validity so "–" doesn't render as "–s".
+  const lotLabel = isValidQty
+    ? `${parsedQty} lot${parsedQty !== 1 ? 's' : ''}`
+    : '– lot';
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.instrument}>{order.instrument}</Text>
@@ -109,12 +118,12 @@ export function OrderForm({ order, onSubmit }: OrderFormProps) {
         <Text style={styles.error}>Minimum 1 lot required</Text>
       )}
 
-      {/* Price */}
+      {/* Price — only shown for Limit orders */}
       {orderType === 'LIMIT' && (
         <View style={styles.fieldRow}>
           <Text style={styles.fieldLabel}>Price (₹)</Text>
           <TextInput
-            style={[styles.priceInput]}
+            style={styles.priceInput}
             value={price}
             onChangeText={setPrice}
             keyboardType="decimal-pad"
@@ -125,8 +134,7 @@ export function OrderForm({ order, onSubmit }: OrderFormProps) {
       {/* Summary */}
       <View style={styles.summary}>
         <Text style={styles.summaryText}>
-          {isValidQty ? parsedQty : '–'} lot{parsedQty !== 1 ? 's' : ''} × {LOT_SIZE} ={' '}
-          {isValidQty ? parsedQty * LOT_SIZE : '–'} units
+          {lotLabel} × {LOT_SIZE} = {isValidQty ? parsedQty * LOT_SIZE : '–'} units
         </Text>
       </View>
 
@@ -140,7 +148,7 @@ export function OrderForm({ order, onSubmit }: OrderFormProps) {
           {isSubmitting ? 'Placing Order…' : `Place ${order.type} Order`}
         </Text>
       </Pressable>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -253,7 +261,7 @@ const styles = StyleSheet.create({
   },
   qtyInput: {
     width: 56,
-    height: 32,
+    paddingVertical: 6,
     backgroundColor: '#212225',
     borderRadius: 8,
     color: '#ffffff',

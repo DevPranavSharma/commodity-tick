@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { ATM_STRIKE, EXPIRY, INSTRUMENT, LOT_SIZE } from '@/constants/optionChain';
 import { type StrikeRow } from '@/types/options';
 
-export const ATM_STRIKE = 5500;
-export const LOT_SIZE = 10;
-export const INSTRUMENT = 'CRUDEOILM';
-export const EXPIRY = '19-Jun-2026';
+// Re-export so existing imports from this file keep working during migration.
+export { ATM_STRIKE, EXPIRY, INSTRUMENT, LOT_SIZE };
 
 const TICK_INTERVAL_MS = 2000;
 
@@ -33,7 +32,10 @@ function buildInitialRows(): StrikeRow[] {
   }));
 }
 
+// ~50% chance any individual leg updates per tick.
+// Returns the SAME reference when skipping so React.memo bails out.
 function applyTick(leg: StrikeRow['put']): StrikeRow['put'] {
+  if (Math.random() > 0.5) return leg;
   const delta = (Math.random() - 0.5) * 5;
   const nextLtp = Math.max(0.05, parseFloat((leg.ltp + delta).toFixed(2)));
   return { ltp: nextLtp, oi: leg.oi, prevLtp: leg.ltp };
@@ -41,22 +43,22 @@ function applyTick(leg: StrikeRow['put']): StrikeRow['put'] {
 
 export function useOptionChainData() {
   const [rows, setRows] = useState<StrikeRow[]>(buildInitialRows);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    intervalRef.current = setInterval(() => {
+    // intervalRef not needed — the cleanup closure captures `id` directly.
+    const id = setInterval(() => {
       setRows((prev) =>
-        prev.map((row) => ({
-          ...row,
-          put: applyTick(row.put),
-          call: applyTick(row.call),
-        })),
+        prev.map((row) => {
+          const newPut = applyTick(row.put);
+          const newCall = applyTick(row.call);
+          // Preserve row reference if nothing changed — React.memo will bail out.
+          if (newPut === row.put && newCall === row.call) return row;
+          return { ...row, put: newPut, call: newCall };
+        }),
       );
     }, TICK_INTERVAL_MS);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => clearInterval(id);
   }, []);
 
   return { rows };

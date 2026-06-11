@@ -30,6 +30,8 @@ export function FlashCell({ value, prevValue, onPress }: FlashCellProps) {
         withTiming(0, { duration: 350 }),
       );
     }
+    // flashProgress and isUp are reanimated shared values — stable object refs
+    // that never change identity, so excluding them from deps is intentional.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 

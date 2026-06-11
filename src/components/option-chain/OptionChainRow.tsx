@@ -1,10 +1,11 @@
+import { memo, useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { EXPIRY, INSTRUMENT } from '@/constants/optionChain';
 import { Colors } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { type OrderDraft, type StrikeRow } from '@/types/options';
 
-import { EXPIRY, INSTRUMENT } from '@/hooks/useOptionChainData';
 import { FlashCell } from './FlashCell';
 
 interface OptionChainRowProps {
@@ -18,8 +19,35 @@ function formatOI(oi: number): string {
   return String(oi);
 }
 
-export function OptionChainRow({ row, isATM, onCellPress }: OptionChainRowProps) {
+export const OptionChainRow = memo(function OptionChainRow({ row, isATM, onCellPress }: OptionChainRowProps) {
   const theme = useTheme();
+
+  // Memoised so FlashCell gets a stable onPress reference between renders.
+  // Each callback only changes when the relevant ltp changes — which is also
+  // when FlashCell needs to re-render anyway.
+  const handlePutPress = useCallback(() => {
+    onCellPress({
+      instrument: INSTRUMENT,
+      expiry: EXPIRY,
+      strike: row.strike,
+      type: 'PUT',
+      quantity: 1,
+      price: row.put.ltp,
+      orderType: 'LIMIT',
+    });
+  }, [onCellPress, row.strike, row.put.ltp]);
+
+  const handleCallPress = useCallback(() => {
+    onCellPress({
+      instrument: INSTRUMENT,
+      expiry: EXPIRY,
+      strike: row.strike,
+      type: 'CALL',
+      quantity: 1,
+      price: row.call.ltp,
+      orderType: 'LIMIT',
+    });
+  }, [onCellPress, row.strike, row.call.ltp]);
 
   return (
     <View
@@ -33,17 +61,7 @@ export function OptionChainRow({ row, isATM, onCellPress }: OptionChainRowProps)
       <FlashCell
         value={row.put.ltp}
         prevValue={row.put.prevLtp}
-        onPress={() =>
-          onCellPress({
-            instrument: INSTRUMENT,
-            expiry: EXPIRY,
-            strike: row.strike,
-            type: 'PUT',
-            quantity: 1,
-            price: row.put.ltp,
-            orderType: 'LIMIT',
-          })
-        }
+        onPress={handlePutPress}
       />
 
       {/* PUT OI */}
@@ -63,17 +81,7 @@ export function OptionChainRow({ row, isATM, onCellPress }: OptionChainRowProps)
       <FlashCell
         value={row.call.ltp}
         prevValue={row.call.prevLtp}
-        onPress={() =>
-          onCellPress({
-            instrument: INSTRUMENT,
-            expiry: EXPIRY,
-            strike: row.strike,
-            type: 'CALL',
-            quantity: 1,
-            price: row.call.ltp,
-            orderType: 'LIMIT',
-          })
-        }
+        onPress={handleCallPress}
       />
 
       {/* CALL OI */}
@@ -82,7 +90,7 @@ export function OptionChainRow({ row, isATM, onCellPress }: OptionChainRowProps)
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {
