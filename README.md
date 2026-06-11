@@ -45,3 +45,7 @@ Open on an iOS Simulator, Android Emulator, or physical device via Expo Go.
 ## One thing I'd improve with more time
 
 **Virtualized column freezing** — on a real option chain with 50+ strikes, the strike column should be sticky/frozen while PUT/CALL columns scroll horizontally. React Native's `FlatList` doesn't support frozen columns natively; I'd implement this with a two-pane layout (fixed strike column + horizontally-scrollable data pane synced via a shared scroll offset `useSharedValue`).
+
+https://github.com/user-attachments/assets/f46e40c5-021c-42a7-aa0a-3d68983bc58c
+
+
