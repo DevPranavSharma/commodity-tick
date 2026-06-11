@@ -1,56 +1,47 @@
-# Welcome to your Expo app 👋
+# Nubra Trading — Mini Option Chain
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native / Expo app implementing a Mini Option Chain screen for Crude Oil Mini with live price simulation and a quick-order bottom sheet.
 
-## Get started
+## What I built
 
-1. Install dependencies
+### Screen 1 — Option Chain List
+- Scrollable table of 7 strikes (5400–5700) with columns: PUT LTP, PUT OI, Strike, CALL LTP, CALL OI
+- ATM strike (5500) is visually highlighted with a dark background and an ATM badge
+- LTP values simulate live updates every 2 seconds via `setInterval` with small random price changes
+- Each LTP cell flashes **green** (price up) or **red** (price down) using a `react-native-reanimated` v4 `withSequence` animation — direction is tracked via a `useSharedValue` to stay safe with the React Compiler
 
-   ```bash
-   npm install
-   ```
+### Screen 2 — Order Form (Bottom Sheet)
+- Opens via `@gorhom/bottom-sheet` when a PUT or CALL LTP cell is tapped
+- Displays: instrument name, expiry, strike, type badge (PUT/CALL), quantity stepper, pre-filled price, order type toggle (Limit/Market)
+- Lot size validation: minimum 1 lot (1 lot = 10 units), submit disabled if quantity < 1
+- Submit button is disabled immediately on first tap to prevent duplicate submissions
+- On submit: shows a success or failure toast via `react-native-toast-message`, triggers haptic feedback via `expo-haptics`, then dismisses the sheet
 
-2. Start the app
+## Stack
+- **Expo 56** / React Native 0.85 / React 19
+- **expo-router** (file-based routing, tabs)
+- **react-native-reanimated 4** for LTP flash animations
+- **@gorhom/bottom-sheet v5** for the order form
+- **expo-haptics** for native haptic feedback
+- **react-native-toast-message** for order confirmation toasts
+- TypeScript throughout
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Running the app
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Open on an iOS Simulator, Android Emulator, or physical device via Expo Go.
 
-### Other setup steps
+## Trade-offs made
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- **Mock submit with 80% success rate** — the spec doesn't define a real API, so I simulate a network call with a random success/failure to exercise both toast paths.
+- **Dark theme only** — the option chain screen uses a fixed dark palette rather than responding to the system light/dark toggle. A real app would wire into the existing theme system.
+- **OI values are static** — only LTP values update on each tick. In a real feed, OI would also change, but the spec only mentions LTP flashing.
+- **No quantity pre-validation on the stepper minimum button** — the `−` stepper clamps to 1 but the raw TextInput still accepts `0`, showing an inline error. This is intentional: it gives power users keyboard control while still blocking invalid submissions.
 
-## Learn more
+## One thing I'd improve with more time
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**Virtualized column freezing** — on a real option chain with 50+ strikes, the strike column should be sticky/frozen while PUT/CALL columns scroll horizontally. React Native's `FlatList` doesn't support frozen columns natively; I'd implement this with a two-pane layout (fixed strike column + horizontally-scrollable data pane synced via a shared scroll offset `useSharedValue`).

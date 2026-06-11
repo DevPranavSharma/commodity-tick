@@ -63,3 +63,8 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+export const FlashColors = {
+  up: '#00C853',
+  down: '#D50000',
+} as const;
